@@ -319,23 +319,6 @@ import { APP_CONFIG } from './config.js';
 import * as vault from './vault.js';
 
 const supabase = createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
-/* =========================================================
-   CONFIG  —  CHANGE THESE FOR PRODUCTION
-   ========================================================= */
-const APP_CONFIG = {
-  company: 'My Factory',
-  supabaseUrl: 'https://fipeokokoruibkorudcu.supabase.co',
-  supabaseKey: 'sb_publishable_QskFSArQ31aUVydn4-v4kQ_DW_CfDGi',
-  googleClientId: '698616821021-uljmq3d5kcgrej1c583veqbss6320h6i.apps.googleusercontent.com',
-  encryptionSalt: 'smart-attendance-v1',
-  matchThreshold: 0.55,
-  autoMarkThreshold: 0.48,
-  livenessTimeout: 10000,
-  modelUrls: [
-    'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights',
-    'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights'
-  ]
-};
 
 /* =========================================================
    HELPERS
@@ -370,7 +353,7 @@ function parseJwt(token) {
 }
 
 /* =========================================================
-   ENCRYPTION (AES-GCM + PBKDF2)
+   ENCRYPTION (AES-GCM + PBKDF2 via vault.js)
    ========================================================= */
 let vaultKey = null;
 
@@ -379,15 +362,6 @@ async function initVaultKey() {
   vaultKey = await vault.getStoredKey();
   return vaultKey;
 }
-
-  vaultKey = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: enc.encode(APP_CONFIG.encryptionSalt), iterations: 100000, hash: 'SHA-256' },
-    baseKey,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-  return vaultKey;
 
 async function encryptData(obj) {
   const key = await initVaultKey();
@@ -677,13 +651,13 @@ async function loadModels() {
       modelsReady = true;
       modelsLoading = false;
       setCamStatus('✓ Face engine ready');
-      $('#face-status') && ($('#face-status').textContent = 'ready');
+      if($('#face-status')) $('#face-status').textContent = 'ready';
       return true;
     } catch (e) { console.warn('Model load failed', base, e); }
   }
   modelsLoading = false;
   setCamStatus('⚠️ Face engine unavailable');
-  $('#face-status') && ($('#face-status').textContent = 'not loaded');
+  if($('#face-status')) $('#face-status').textContent = 'not loaded';
   return false;
 }
 
@@ -1047,7 +1021,18 @@ async function initGuard() {
     return;
   }
   $('#btn-start-cam').disabled = false;
-  // … rest of original initGuard
+  
+  await renderToday();
+  await renderManualSelect();
+  setResult('Ready', 'Start the camera and point it at your face.', 'idle');
+  $('#result-actions').innerHTML = '';
+  $('#oval').classList.remove('ok');
+  if (window.__faceApiFail || !window.faceapi) {
+    setCamStatus('⚠️ Face library missing — manual mode only');
+  } else {
+    setCamStatus('Camera is off');
+    loadModels();
+  }
 }
 
 /* =========================================================
@@ -1060,7 +1045,8 @@ async function renderAdmin() {
 
   // DB status check
   try {
-    await supabase.from('approved_users').select('email').limit(1);
+    const { error } = await supabase.from('approved_users').select('email').limit(1);
+    if(error) throw error;
     $('#db-status').textContent = 'connected ✓';
   } catch (e) {
     $('#db-status').textContent = 'error — check SQL setup';
@@ -1253,7 +1239,7 @@ async function downloadExcel() {
 }
 
 /* =========================================================
-   SETUP SQL (for the admin Setup tab)
+   SETUP SQL
    ========================================================= */
 const SETUP_SQL = `-- Paste this into Supabase SQL Editor and click Run
 
