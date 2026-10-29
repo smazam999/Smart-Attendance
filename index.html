@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Smart Attendance</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:#0b1220;color:#e8eefc;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+.muted{color:#93a1bd}.tiny{font-size:12px}.small{font-size:13px}.strong{font-weight:600}
+.center{text-align:center}
+.hint{font-size:12.5px;color:#93a1bd;margin:10px 0 0;line-height:1.5}
+.login-wrap{max-width:420px;margin:0 auto;padding:34px 18px 40px}
+.brand{text-align:center;margin:26px 0 22px}
+.logo{font-size:46px;line-height:1}
+.brand h1{font-size:24px;margin:8px 0 4px}
+.card{background:#131c2e;border:1px solid #26334d;border-radius:16px;padding:16px;margin-bottom:14px}
+.field-label{display:block;font-size:12.5px;color:#93a1bd;margin:12px 0 6px;font-weight:600}
+.input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #26334d;background:#0e1728;color:#e8eefc;font-size:15px;outline:none;font-family:inherit}
+.input:focus{border-color:#2f6bff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:12px;border:1px solid #26334d;background:#1b2740;color:#e8eefc;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform .08s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:#2f6bff;border-color:#2f6bff}
+.btn.ok{background:#166534;border-color:#166534}
+.btn.danger{background:#7f1d1d;border-color:#7f1d1d}
+.btn.ghost{background:transparent}
+.btn.block{width:100%;margin-top:16px}
+.btn.sm{padding:8px 12px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.row{display:flex;align-items:center;gap:8px}
+.row.wrap{flex-wrap:wrap}
+.row.between{justify-content:space-between}
+.pill{display:inline-block;padding:4px 10px;border-radius:999px;background:#1b2740;border:1px solid #26334d;font-size:12px;font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:rgba(11,18,32,.94);backdrop-filter:blur(8px);border-bottom:1px solid #26334d}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.content{max-width:760px;margin:0 auto;padding:14px 14px 70px}
+.camera-card{position:relative;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:3/4;max-height:58vh;margin-bottom:14px}
+@media(min-width:640px){.camera-card{aspect-ratio:4/3;max-height:480px}}
+.camera-card video{width:100%;height:100%;object-fit:cover;display:block}
+.face-guide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.oval{width:56%;height:68%;border:2px dashed rgba(255,255,255,.45);border-radius:50%;transition:.25s}
+.oval.ok{border-color:#22c55e;border-style:solid;box-shadow:0 0 0 4px rgba(34,197,94,.18)}
+.cam-status{position:absolute;top:10px;left:10px;right:10px;padding:7px 11px;border-radius:10px;background:rgba(0,0,0,.58);font-size:12px;backdrop-filter:blur(4px)}
+.cam-actions{position:absolute;bottom:10px;left:10px;right:10px;display:flex;gap:8px;justify-content:center}
+.result-title{font-size:16px;font-weight:700;margin-bottom:2px}
+.result-sub{font-size:12.5px}
+.result.ok{border-color:#22c55e;background:#0f2a1b}
+.result.warn{border-color:#f59e0b;background:#2a2110}
+#result-actions{margin-top:10px}
+#result-actions:empty{display:none}
+.tabs{display:flex;gap:6px;background:#0e1728;border:1px solid #26334d;border-radius:12px;padding:5px;margin-bottom:14px;overflow-x:auto}
+.tab{flex:1;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:#93a1bd;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.tab.active{background:#2f6bff;color:#fff}
+.tabpane{display:none}
+.tabpane.active{display:block}
+.list{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto}
+.list-row{display:flex;align-items:center;gap:10px;padding:9px 10px;background:#0e1728;border:1px solid #26334d;border-radius:12px}
+.avatar{width:34px;height:34px;border-radius:50%;background:#2f6bff;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;flex:none}
+.grow{flex:1;min-width:0}
+.time{font-variant-numeric:tabular-nums;font-size:13px;color:#93a1bd}
+.table-wrap{overflow:auto;padding:0;max-height:60vh}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid #26334d;white-space:nowrap}
+th{background:#0e1728;color:#93a1bd;font-size:11px;text-transform:uppercase;letter-spacing:.05em;position:sticky;top:0;z-index:2}
+tbody tr:hover{background:#0e1728}
+.thumb{width:32px;height:32px;border-radius:50%;object-fit:cover;display:block}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:#1b2740;border:1px solid #26334d;color:#e8eefc;padding:11px 16px;border-radius:12px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:999;max-width:90vw;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+pre{background:#0e1728;border:1px solid #26334d;border-radius:12px;padding:12px;overflow:auto;font-size:11.5px;line-height:1.55;max-height:320px;margin:10px 0 0}
+details summary{cursor:pointer;font-weight:600;font-size:14px;padding:4px 0}
+.google-btn-wrap{display:flex;justify-content:center;padding:8px 0}
+.notice{background:#0f2a1b;border:1px solid #166534;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55}
+.warnbox{background:#2a2110;border:1px solid #f59e0b;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55}
+.video-mini{width:100%;max-width:340px;aspect-ratio:1;border-radius:12px;background:#000;display:block;margin:10px auto;object-fit:cover}
+@media(max-width:520px){.tabs{font-size:12.5px}.tab{padding:8px 6px;font-size:12px}}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- ==================== LOGIN ==================== -->
+<section id="scr-login" class="screen active">
+  <div class="login-wrap">
+    <div class="brand">
+      <div class="logo">🛡️</div>
+      <h1>Smart Attendance</h1>
+      <p class="muted small">Secure face attendance for factory workers</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-login-tab="worker">User</button>
+      <button class="tab" data-login-tab="admin">Admin</button>
+    </div>
+
+    <div class="tabpane active" id="login-pane-worker">
+      <div class="card">
+        <p class="muted small" style="margin:0 0 8px;text-align:center">
+          Sign in with your <strong>authorised Gmail</strong> account.
+        </p>
+        <div id="google-signin-btn" class="google-btn-wrap"></div>
+        <p id="worker-login-hint" class="hint" style="text-align:center"></p>
+      </div>
+    </div>
+
+    <div class="tabpane" id="login-pane-admin">
+      <div class="card">
+        <label class="field-label" for="login-id">Admin email</label>
+        <input id="login-id" class="input" type="email" autocomplete="username"
+       placeholder="smazammsmetal@gmail.com">
+        <label class="field-label" for="login-pass">Password</label>
+        <input id="login-pass" class="input" type="password" autocomplete="current-password" placeholder="••••••••">
+        <button id="btn-admin-login" class="btn primary block">Sign in as Admin</button>
+        <p id="login-hint" class="hint"></p>
+      </div>
+    </div>
+
+    <p class="muted tiny center" style="line-height:1.6">
+      Cloud-synced • Encrypted biometrics • Liveness verification<br>
+      Data stored in your Supabase project
+    </p>
+  </div>
+</section>
+
+<!-- ==================== WORKER / GUARD ==================== -->
+<section id="scr-guard" class="screen">
+  <header class="topbar">
+    <div>
+      <div class="strong">Worker</div>
+      <div class="muted tiny" id="guard-user">—</div>
+    </div>
+    <div class="topbar-actions">
+      <span class="pill" id="pill-count">0 today</span>
+      <button class="btn ghost sm" id="btn-guard-logout">Sign out</button>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="camera-card">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="face-guide"><div class="oval" id="oval"></div></div>
+      <div class="cam-status" id="cam-status">Camera is off</div>
+      <div class="cam-actions">
+        <button id="btn-start-cam" class="btn primary sm">▶ Start Camera</button>
+        <button id="btn-switch-cam" class="btn sm">🔄 Switch</button>
+      </div>
+    </div>
+
+    <div class="card result" id="result-card">
+      <div id="result-title" class="result-title muted">Ready</div>
+      <div id="result-sub" class="result-sub muted tiny">Start the camera to mark attendance.</div>
+      <div id="result-actions" class="row wrap"></div>
+    </div>
+
+    <div class="card">
+      <div class="row between" style="margin-bottom:6px">
+        <strong>Today's attendance</strong>
+        <span class="pill" id="today-count">0</span>
+      </div>
+      <div id="today-list" class="list"></div>
+    </div>
+
+    <div class="card">
+      <div class="strong" style="margin-bottom:8px">Manual fallback</div>
+      <p class="muted tiny" style="margin:0 0 10px">Use this only if the camera or face engine is unavailable.</p>
+      <select id="manual-select" class="input"></select>
+      <button id="btn-manual-mark" class="btn primary block">Mark Attendance</button>
+    </div>
+  </main>
+</section>
+
+<!-- ==================== ADMIN ==================== -->
+<section id="scr-admin" class="screen">
+  <header class="topbar">
+    <div>
+      <div class="strong">Admin Panel</div>
+      <div class="muted tiny" id="admin-date">—</div>
+    </div>
+    <button class="btn ghost sm" id="btn-admin-logout">Sign out</button>
+  </header>
+
+  <main class="content">
+    <div class="tabs">
+      <button class="tab active" data-atab="att">📊 Attendance</button>
+      <button class="tab" data-atab="emp">👥 Workers</button>
+      <button class="tab" data-atab="users">✉️ Gmails</button>
+      <button class="tab" data-atab="set">⚙️ Setup</button>
+    </div>
+
+    <!-- Attendance -->
+    <div class="tabpane active" id="apane-att">
+      <div class="card">
+        <div class="grid2">
+          <div><label class="field-label" style="margin-top:0">From</label><input id="f-from" class="input" type="date"></div>
+          <div><label class="field-label" style="margin-top:0">To</label><input id="f-to" class="input" type="date"></div>
+        </div>
+        <input id="f-q" class="input" placeholder="Search name or employee ID" style="margin-top:10px">
+        <div class="row wrap" style="margin-top:12px">
+          <button id="btn-apply-filter" class="btn primary sm">Apply</button>
+          <button id="btn-show-all" class="btn sm">All Dates</button>
+          <button id="btn-download" class="btn ok sm">⬇ Excel</button>
+          <button id="btn-refresh-att" class="btn sm">🔄 Refresh</button>
+        </div>
+        <div id="att-summary" class="hint"></div>
+      </div>
+      <div class="card table-wrap">
+        <table id="att-table">
+          <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Emp ID</th><th>Name</th><th>Dept</th><th>Method</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Workers -->
+    <div class="tabpane" id="apane-emp">
+      <div class="card">
+        <button id="btn-enroll-toggle" class="btn primary block" style="margin-top:0">➕ Enroll New Worker</button>
+      </div>
+
+      <div class="card" id="enroll-panel" style="display:none">
+        <div class="strong" style="margin-bottom:6px">New worker enrollment</div>
+        <video id="video-admin" class="video-mini" autoplay playsinline muted></video>
+        <div id="admin-enroll-status" class="hint" style="text-align:center;margin-bottom:8px">Camera starting…</div>
+        <label class="field-label">Employee ID *</label>
+        <input id="en-id" class="input" placeholder="e.g. EMP001">
+        <label class="field-label">Full Name *</label>
+        <input id="en-name" class="input" placeholder="e.g. Rahim Uddin">
+        <label class="field-label">Department</label>
+        <input id="en-dept" class="input" placeholder="e.g. Packing">
+        <div class="row wrap" style="margin-top:14px">
+          <button id="btn-capture-admin" class="btn">📸 Capture</button>
+          <button id="btn-save-emp" class="btn primary">💾 Save</button>
+          <button id="btn-cancel-enroll" class="btn ghost">Cancel</button>
+        </div>
+      </div>
+
+      <div class="card table-wrap">
+        <table id="emp-table">
+          <thead><tr><th>#</th><th>Photo</th><th>Emp ID</th><th>Name</th><th>Dept</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Approved Gmails -->
+    <div class="tabpane" id="apane-users">
+      <div class="card">
+        <div class="strong" style="margin-bottom:8px">Approve a Gmail account</div>
+        <input id="approve-email" class="input" placeholder="worker@gmail.com" type="email">
+        <input id="approve-name" class="input" placeholder="Worker name (optional)" style="margin-top:10px">
+        <button id="btn-approve" class="btn primary block">✅ Approve</button>
+        <p class="hint">Only approved Gmails can sign in to the Worker screen. Unauthorised accounts see: <em>"No Permission to unauthorize Login please contact Admin"</em>.</p>
+      </div>
+      <div class="card">
+        <div class="row between" style="margin-bottom:10px">
+          <strong>Approved accounts</strong>
+          <span class="pill" id="approved-count">0</span>
+        </div>
+        <div id="approved-list" class="list"></div>
+      </div>
+    </div>
+
+    <!-- Setup -->
+    <div class="tabpane" id="apane-set">
+      <div class="card">
+        <div class="strong" style="margin-bottom:6px">🔌 Connection status</div>
+        <div class="muted tiny">Supabase: <strong id="db-status">checking…</strong></div>
+        <div class="muted tiny">Face engine: <strong id="face-status">checking…</strong></div>
+        <div class="muted tiny" style="margin-top:6px">Google OAuth client: <code style="font-size:11px">…6320h6i</code></div>
+      </div>
+
+      <div class="card">
+        <details>
+          <summary>🗄 Database setup SQL (click to open)</summary>
+          <p class="muted tiny" style="line-height:1.6">
+            If you haven't run this yet, paste it into your Supabase SQL Editor.
+          </p>
+          <pre id="setup-sql"></pre>
+          <button id="btn-copy-sql" class="btn sm" style="margin-top:10px">📋 Copy SQL</button>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="strong" style="margin-bottom:6px">🛡 Security notice</div>
+        <div class="notice">
+          · Face descriptors and thumbnails are encrypted with <strong>AES-GCM</strong> before storage.<br>
+          · Liveness check (blink / mouth / head-turn) prevents most photo &amp; screen spoofs.<br>
+          · Admin-only enrollment for biometric data.<br>
+          · Face recognition is <strong>not</strong> absolute proof of identity.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="strong" style="margin-bottom:6px">⚠ Change before production</div>
+        <div class="warnbox">
+          The encryption passphrase and admin password are hard-coded in the JS (<code>APP_CONFIG</code>).
+          For a real deployment, move them server-side.
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- ==================== LIBRARIES ==================== -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js" onerror="window.__faceApiFail=true"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onerror="window.__xlsxFail=true"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<!-- ==================== APP ==================== -->
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { APP_CONFIG } from './config.js';
+import * as vault from './vault.js';
+
+const supabase = createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseKey);
+/* =========================================================
+   CONFIG  —  CHANGE THESE FOR PRODUCTION
+   ========================================================= */
+const APP_CONFIG = {
+  company: 'My Factory',
+  supabaseUrl: 'https://fipeokokoruibkorudcu.supabase.co',
+  supabaseKey: 'sb_publishable_QskFSArQ31aUVydn4-v4kQ_DW_CfDGi',
+  googleClientId: '698616821021-uljmq3d5kcgrej1c583veqbss6320h6i.apps.googleusercontent.com',
+  encryptionSalt: 'smart-attendance-v1',
+  matchThreshold: 0.55,
+  autoMarkThreshold: 0.48,
+  livenessTimeout: 10000,
+  modelUrls: [
+    'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights',
+    'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights'
+  ]
+};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const pad2 = n => String(n).padStart(2, '0');
+const todayStr = (d = new Date()) => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+const nowTime  = () => { const d = new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const initials = n => String(n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(atob(base64).split('').map(c =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join(''));
+    return JSON.parse(json);
+  } catch (e) { return null; }
+}
+
+/* =========================================================
+   ENCRYPTION (AES-GCM + PBKDF2)
+   ========================================================= */
+let vaultKey = null;
+
+async function initVaultKey() {
+  if (vaultKey) return vaultKey;
+  vaultKey = await vault.getStoredKey();
+  return vaultKey;
+}
+
+  vaultKey = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode(APP_CONFIG.encryptionSalt), iterations: 100000, hash: 'SHA-256' },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+  return vaultKey;
+
+async function encryptData(obj) {
+  const key = await initVaultKey();
+  if (!key) throw new Error('Vault locked — an admin must unlock this device first');
+  return vault.encrypt(obj, key);
+}
+
+async function decryptData(enc) {
+  const key = await initVaultKey();
+  if (!key) return null;
+  return vault.decrypt(enc, key);
+}
+
+/* =========================================================
+   DATABASE FUNCTIONS
+   ========================================================= */
+async function dbCheckApproved(email) {
+  const { data, error } = await supabase
+    .from('approved_users')
+    .select('email,name,status')
+    .eq('email', email.toLowerCase())
+    .eq('status', 'approved')
+    .maybeSingle();
+  if (error) { console.warn('checkApproved', error); return null; }
+  return data;
+}
+
+async function dbListApproved() {
+  const { data, error } = await supabase.from('approved_users').select('*').order('approved_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function dbApproveEmail(email, name) {
+  const { data, error } = await supabase
+    .from('approved_users')
+    .upsert({ email: email.toLowerCase(), name: name || email.split('@')[0], status: 'approved' }, { onConflict: 'email' })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function dbRemoveApproval(email) {
+  const { error } = await supabase.from('approved_users').delete().eq('email', email.toLowerCase());
+  if (error) throw error;
+}
+
+async function dbListEmployees() {
+  const { data, error } = await supabase.from('employees').select('*').order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function dbInsertEmployee(emp) {
+  const { data, error } = await supabase.from('employees').insert(emp).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function dbDeleteEmployee(empId) {
+  const { error } = await supabase.from('employees').delete().eq('emp_id', empId);
+  if (error) throw error;
+}
+
+async function dbListAttendance(filters = {}) {
+  let q = supabase.from('attendance').select('*').order('date', { ascending: false }).order('time', { ascending: false });
+  if (filters.from) q = q.gte('date', filters.from);
+  if (filters.to) q = q.lte('date', filters.to);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+}
+
+async function dbInsertAttendance(rec) {
+  const { data, error } = await supabase.from('attendance').insert(rec).select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function dbDeleteAttendance(id) {
+  const { error } = await supabase.from('attendance').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const guardVideo = document.getElementById('video');
+const adminVideo = document.getElementById('video-admin');
+let currentVideo = guardVideo;
+
+let currentUser   = null;
+let stream        = null;
+let scanning      = false;
+let busy          = false;
+let loopTimer     = null;
+let facing        = 'environment';
+let modelsReady   = false;
+let modelsLoading = false;
+let pendingEmp    = null;
+let enrollSamples = [];
+let cachedEmployees = [];
+let attFilter     = { from: todayStr(), to: todayStr(), q: '' };
+let context       = 'guard'; // 'guard' | 'admin-enroll'
+
+// Liveness
+let livenessState = 'idle';
+let lastLivenessTime = 0;
+
+/* =========================================================
+   GOOGLE SIGN-IN
+   ========================================================= */
+let googleInitialized = false;
+function initGoogle() {
+  if (googleInitialized) return;
+  if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+    setTimeout(initGoogle, 400);
+    return;
+  }
+  try {
+    google.accounts.id.initialize({
+      client_id: APP_CONFIG.googleClientId,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'filled_blue', size: 'large', width: 300, text: 'signin_with', shape: 'rectangular', logo_alignment: 'left' }
+    );
+    googleInitialized = true;
+  } catch (e) {
+    console.warn('Google init failed', e);
+    $('#worker-login-hint').textContent = '⚠️ Google Sign-In failed to load. Refresh the page.';
+  }
+}
+
+async function handleGoogleCredential(response) {
+  const hint = $('#worker-login-hint');
+  hint.textContent = 'Verifying…';
+  const payload = parseJwt(response.credential);
+  if (!payload || !payload.email) {
+    hint.textContent = '❌ Could not read Google account.';
+    return;
+  }
+  const email = payload.email.toLowerCase();
+  try {
+    const approved = await dbCheckApproved(email);
+    if (!approved) {
+      hint.innerHTML = '<strong style="color:#fca5a5">❌ No Permission to unauthorize Login please contact Admin</strong>';
+      try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+      return;
+    }
+    hint.textContent = '';
+    currentUser = { email, name: approved.name || payload.name || email, role: 'guard' };
+    try { sessionStorage.setItem('sa_user', JSON.stringify(currentUser)); } catch (e) {}
+    enterApp();
+  } catch (e) {
+    hint.textContent = '❌ Login failed: ' + e.message;
+  }
+}
+
+/* =========================================================
+   ADMIN LOGIN
+   ========================================================= */
+async function doAdminLogin() {
+  const email = $('#login-id').value.trim().toLowerCase();
+  const pass  = $('#login-pass').value;
+  const hint  = $('#login-hint');
+
+  if (!email || !pass) { hint.textContent = 'Enter admin email and password.'; return; }
+
+  hint.textContent = 'Signing in…';
+
+  // 1. Supabase Auth
+  const { data: auth, error: authErr } = await supabase.auth.signInWithPassword({
+    email, password: pass
+  });
+  if (authErr) { hint.textContent = '❌ ' + authErr.message; return; }
+
+  // 2. Verify admin role
+  const { data: row } = await supabase
+    .from('approved_users')
+    .select('name,role')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (!row || row.role !== 'admin') {
+    await supabase.auth.signOut();
+    hint.textContent = '❌ This account is not an administrator.';
+    return;
+  }
+
+  // 3. Make sure the encryption vault is unlocked on this device
+  try {
+    await unlockVaultOnThisDevice();
+  } catch (e) {
+    await supabase.auth.signOut();
+    hint.textContent = '❌ Vault: ' + e.message;
+    return;
+  }
+
+  hint.textContent = '';
+  $('#login-pass').value = '';
+  currentUser = { email, name: row.name || 'Administrator', role: 'admin' };
+  try { sessionStorage.setItem('sa_user', JSON.stringify(currentUser)); } catch (e) {}
+  enterApp();
+}
+
+async function unlockVaultOnThisDevice() {
+  // Already unlocked?
+  if (await vault.getStoredKey()) return;
+
+  // Does a vault exist globally?
+  const { data } = await supabase
+    .from('app_settings').select('value').eq('key', 'vault_verifier').maybeSingle();
+  const isNew = !data;
+
+  const passphrase = prompt(
+    isNew
+      ? '🔐 FIRST-TIME SETUP\n\nChoose a vault passphrase (min 8 chars).\nThis encrypts ALL biometric data.\n\nRemember it — it cannot be recovered!'
+      : '🔐 Enter the vault passphrase to unlock this device:'
+  );
+
+  if (!passphrase || passphrase.length < 8) {
+    throw new Error('Passphrase must be at least 8 characters');
+  }
+
+  await vault.ensureVault(supabase, passphrase, isNew);
+  toast('🔓 Vault unlocked on this device');
+}
+
+async function doLogout() {
+  stopCamera();
+  if (currentUser && currentUser.role === 'admin') {
+    try { await supabase.auth.signOut(); } catch (e) {}
+  }
+  currentUser = null;
+  pendingEmp = null;
+  enrollSamples = [];
+  livenessState = 'idle';
+  try { sessionStorage.removeItem('sa_user'); } catch (e) {}
+  try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+  $('#login-id').value = '';
+  $('#login-pass').value = '';
+  $('#worker-login-hint').textContent = '';
+  showScreen('scr-login');
+  setTimeout(initGoogle, 100);
+}
+
+/* =========================================================
+   SCREEN ROUTING
+   ========================================================= */
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  window.scrollTo(0, 0);
+}
+
+function enterApp() {
+  if (currentUser.role === 'admin') {
+    context = 'admin';
+    stopCamera();
+    $('#admin-date').textContent = new Date().toDateString();
+    showScreen('scr-admin');
+    renderAdmin();
+  } else {
+    context = 'guard';
+    $('#guard-user').textContent = currentUser.email;
+    showScreen('scr-guard');
+    initGuard();
+  }
+}
+
+/* =========================================================
+   FACE MODELS
+   ========================================================= */
+async function loadModels() {
+  if (modelsReady) return true;
+  if (modelsLoading) return false;
+  if (!window.faceapi) return false;
+  modelsLoading = true;
+  for (const base of APP_CONFIG.modelUrls) {
+    try {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(base);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(base);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(base);
+      modelsReady = true;
+      modelsLoading = false;
+      setCamStatus('✓ Face engine ready');
+      $('#face-status') && ($('#face-status').textContent = 'ready');
+      return true;
+    } catch (e) { console.warn('Model load failed', base, e); }
+  }
+  modelsLoading = false;
+  setCamStatus('⚠️ Face engine unavailable');
+  $('#face-status') && ($('#face-status').textContent = 'not loaded');
+  return false;
+}
+
+/* =========================================================
+   CAMERA
+   ========================================================= */
+function setCamStatus(text) {
+  const el = $('#cam-status');
+  if (el) el.textContent = text;
+}
+
+async function startCamera(videoEl) {
+  stopCamera();
+  currentVideo = videoEl || guardVideo;
+  const tries = [
+    { video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+    { video: { facingMode: facing }, audio: false },
+    { video: true, audio: false }
+  ];
+  let lastErr = null;
+  for (const c of tries) {
+    try { stream = await navigator.mediaDevices.getUserMedia(c); break; }
+    catch (e) { lastErr = e; }
+  }
+  if (!stream) {
+    setCamStatus('❌ Camera error: ' + ((lastErr && lastErr.message) || 'not available'));
+    toast('Camera unavailable — check permissions');
+    return;
+  }
+  currentVideo.srcObject = stream;
+  try { await currentVideo.play(); } catch (e) {}
+  scanning = true;
+  livenessState = 'idle';
+  setCamStatus(modelsReady ? 'Scanning…' : 'Loading face engine…');
+  if (!modelsReady && window.faceapi) loadModels();
+  loop();
+}
+
+function stopCamera() {
+  scanning = false;
+  if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  try { guardVideo.srcObject = null; } catch (e) {}
+  try { adminVideo.srcObject = null; } catch (e) {}
+}
+
+async function switchCamera() {
+  facing = (facing === 'environment') ? 'user' : 'environment';
+  await startCamera(currentVideo);
+}
+
+/* =========================================================
+   LIVENESS
+   ========================================================= */
+const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+function eyeAspectRatio(eye) {
+  const v1 = d2(eye[1], eye[5]);
+  const v2 = d2(eye[2], eye[4]);
+  const h  = d2(eye[0], eye[3]);
+  return (v1 + v2) / (2.0 * h);
+}
+function detectBlink(lm) {
+  const l = lm.getLeftEye(), r = lm.getRightEye();
+  return ((eyeAspectRatio(l) + eyeAspectRatio(r)) / 2) < 0.20;
+}
+function detectMouthOpen(lm) {
+  const m = lm.getMouth();
+  const v = d2(m[13], m[19]), h = d2(m[0], m[6]);
+  return (v / h) > 0.35;
+}
+function detectHeadTurn(lm) {
+  const nose = lm.getNose(), le = lm.getLeftEye(), re = lm.getRightEye();
+  const cx = (le[0].x + re[3].x) / 2;
+  const fw = Math.abs(re[3].x - le[0].x);
+  if (fw < 20) return false;
+  return Math.abs((nose[3].x - cx) / fw) > 0.10;
+}
+
+const LIVENESS_ACTIONS = [
+  { id: 'blink',      label: 'Blink your eyes slowly',    check: detectBlink },
+  { id: 'mouth_open', label: 'Open your mouth wide',      check: detectMouthOpen },
+  { id: 'turn_head',  label: 'Turn your head to one side', check: detectHeadTurn }
+];
+
+async function runLiveness(action) {
+  const start = Date.now();
+  let hits = 0;
+  while (Date.now() - start < APP_CONFIG.livenessTimeout && scanning) {
+    try {
+      const res = await faceapi
+        .detectSingleFace(currentVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+        .withFaceLandmarks();
+      if (res && action.check(res.landmarks)) {
+        if (++hits >= 2) return true;
+      } else hits = 0;
+    } catch (e) {}
+    await sleep(100);
+  }
+  return false;
+}
+
+/* =========================================================
+   MAIN LOOP
+   ========================================================= */
+async function loop() {
+  if (!scanning) return;
+  if (busy || !modelsReady || !currentVideo || currentVideo.readyState < 2 || !currentVideo.videoWidth) {
+    loopTimer = setTimeout(loop, 400);
+    return;
+  }
+  busy = true;
+  try {
+    if (context === 'admin') {
+      // only face presence for enrollment
+      const res = await faceapi
+        .detectSingleFace(currentVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+        .withFaceLandmarks();
+      const s = $('#admin-enroll-status');
+      if (s) s.textContent = res ? '✓ Face detected — click Capture' : 'No face — look at the camera';
+    } else if (livenessState === 'passed') {
+      await verifyTick();
+    } else {
+      await livenessTick();
+    }
+  } catch (e) { console.warn('loop', e); }
+  busy = false;
+  loopTimer = setTimeout(loop, 320);
+}
+
+async function livenessTick() {
+  const res = await faceapi
+    .detectSingleFace(currentVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 }))
+    .withFaceLandmarks();
+  if (!res) {
+    $('#oval').classList.remove('ok');
+    onNoFace();
+    return;
+  }
+  $('#oval').classList.add('ok');
+  livenessState = 'checking';
+  const action = LIVENESS_ACTIONS[Math.floor(Math.random() * LIVENESS_ACTIONS.length)];
+  setCamStatus('🔒 ' + action.label);
+  setResult('🔒 Liveness Check', action.label, 'idle');
+  const passed = await runLiveness(action);
+  if (passed) {
+    livenessState = 'passed';
+    lastLivenessTime = Date.now();
+    setCamStatus('✓ Liveness passed — identifying…');
+  } else {
+    livenessState = 'idle';
+    setResult('❌ Liveness Failed', 'Please try again with your real face.', 'warn');
+    await sleep(1400);
+    setResult('Ready', 'Point the camera at your face.', 'idle');
+  }
+}
+
+async function verifyTick() {
+  const res = await faceapi
+    .detectSingleFace(currentVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.45 }))
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+  if (!res) {
+    $('#oval').classList.remove('ok');
+    onNoFace();
+    if (Date.now() - lastLivenessTime > 6000) livenessState = 'idle';
+    return;
+  }
+  $('#oval').classList.add('ok');
+  await onFaceDetected(Array.from(res.descriptor));
+}
+
+function onNoFace() {
+  if (pendingEmp) return;
+  setResult('Ready', 'Point the camera at your face.', 'idle');
+  $('#result-actions').innerHTML = '';
+}
+
+/* =========================================================
+   MATCHING
+   ========================================================= */
+function euclidean(a, b) {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
+  return Math.sqrt(s);
+}
+
+async function refreshEmployeesCache() {
+  try {
+    const rows = await dbListEmployees();
+    cachedEmployees = [];
+    for (const row of rows) {
+      const dec = await decryptData(row.encrypted_blob);
+      if (!dec) {
+        console.warn('Could not decrypt employee', row.emp_id);
+        continue;
+      }
+      cachedEmployees.push({
+        dbId: row.id, id: row.emp_id, name: row.name, dept: row.dept,
+        descriptors: dec.descriptors || [], thumb: dec.thumb || null
+      });
+    }
+  } catch (e) { console.warn('refreshEmployeesCache', e); }
+}
+
+function findMatch(descriptor) {
+  let best = null, bestDist = Infinity;
+  for (const e of cachedEmployees) {
+    for (const ref of e.descriptors) {
+      if (!ref || ref.length !== 128) continue;
+      const d = euclidean(descriptor, ref);
+      if (d < bestDist) { bestDist = d; best = e; }
+    }
+  }
+  if (best && bestDist <= APP_CONFIG.matchThreshold) return { emp: best, distance: bestDist };
+  return null;
+}
+
+async function onFaceDetected(descriptor) {
+  const match = findMatch(descriptor);
+  const date = todayStr();
+
+  if (!match) {
+    pendingEmp = null;
+    setResult('❓ Unknown face', 'This person is not enrolled.', 'warn');
+    $('#result-actions').innerHTML = '';
+    livenessState = 'idle';
+    return;
+  }
+  const emp = match.emp;
+  const already = await checkAlreadyMarked(emp.id, date);
+  if (already) {
+    pendingEmp = null;
+    setResult('✅ ' + emp.name, 'Already marked today at ' + already.time, 'ok');
+    $('#result-actions').innerHTML = '';
+    livenessState = 'idle';
+    return;
+  }
+  if (match.distance <= APP_CONFIG.autoMarkThreshold) {
+    pendingEmp = null;
+    $('#result-actions').innerHTML = '';
+    const ok = await markAttendance(emp, 'face');
+    if (ok) setResult('✅ ' + emp.name, 'Attendance marked automatically.', 'ok');
+    livenessState = 'idle';
+  } else {
+    pendingEmp = emp;
+    setResult('🙂 ' + emp.name, 'ID: ' + emp.id + ' • Match ' + Math.round((1 - match.distance) * 100) + '%', 'ok');
+    renderResultActions();
+  }
+}
+
+async function checkAlreadyMarked(empId, date) {
+  const { data, error } = await supabase
+    .from('attendance').select('time')
+    .eq('emp_id', String(empId)).eq('date', date).maybeSingle();
+  if (error) return null;
+  return data;
+}
+
+function renderResultActions() {
+  const box = $('#result-actions');
+  box.innerHTML = '';
+  if (!pendingEmp) return;
+
+  const b = document.createElement('button');
+  b.className = 'btn primary sm';
+  b.textContent = '✅ Mark Attendance';
+  b.onclick = async () => {
+    const emp = pendingEmp;
+    pendingEmp = null;
+    box.innerHTML = '';
+    if (await markAttendance(emp, 'face')) {
+      setResult('✅ ' + emp.name, 'Attendance marked.', 'ok');
+    }
+    livenessState = 'idle';
+  };
+  box.appendChild(b);
+
+  const c = document.createElement('button');
+  c.className = 'btn ghost sm';
+  c.textContent = 'Not this person';
+  c.onclick = () => {
+    pendingEmp = null;
+    box.innerHTML = '';
+    setResult('Ready', 'Point the camera at your face.', 'idle');
+    livenessState = 'idle';
+  };
+  box.appendChild(c);
+}
+
+function setResult(title, sub, state) {
+  $('#result-title').textContent = title;
+  $('#result-sub').textContent = sub;
+  const card = $('#result-card');
+  card.classList.remove('ok', 'warn');
+  if (state === 'ok') card.classList.add('ok');
+  if (state === 'warn') card.classList.add('warn');
+}
+
+/* =========================================================
+   ATTENDANCE
+   ========================================================= */
+async function markAttendance(emp, method) {
+  try {
+    await dbInsertAttendance({
+      emp_id: String(emp.id), name: emp.name, dept: emp.dept || '',
+      date: todayStr(), time: nowTime(), method: method || 'face'
+    });
+    toast('✅ ' + emp.name + ' marked at ' + nowTime());
+    await renderToday();
+    return true;
+  } catch (e) {
+    toast('❌ Save failed: ' + e.message);
+    return false;
+  }
+}
+
+async function renderToday() {
+  try {
+    const rows = await dbListAttendance({ from: todayStr(), to: todayStr() });
+    $('#today-count').textContent = rows.length;
+    $('#pill-count').textContent = rows.length + ' today';
+    const box = $('#today-list');
+    if (!rows.length) {
+      box.innerHTML = '<p class="muted tiny center" style="padding:14px 0">No attendance today.</p>';
+      return;
+    }
+    box.innerHTML = rows.map(a => `
+      <div class="list-row">
+        <div class="avatar">${esc(initials(a.name))}</div>
+        <div class="grow">
+          <div class="strong" style="font-size:14px">${esc(a.name)}</div>
+          <div class="muted tiny">${esc(a.emp_id)}${a.dept ? ' • ' + esc(a.dept) : ''}</div>
+        </div>
+        <div class="time">${esc(a.time)}</div>
+      </div>`).join('');
+  } catch (e) { console.warn('renderToday', e); }
+}
+
+async function renderManualSelect() {
+  const sel = $('#manual-select');
+  if (!cachedEmployees.length) { try { await refreshEmployeesCache(); } catch (e) {} }
+  const emps = cachedEmployees.slice().sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  sel.innerHTML = emps.length
+    ? '<option value="">— Select worker —</option>' + emps.map(e => `<option value="${esc(e.id)}">${esc(e.name)} (${esc(e.id)})</option>`).join('')
+    : '<option value="">No workers enrolled yet</option>';
+}
+
+/* =========================================================
+   GUARD SCREEN
+   ========================================================= */
+async function initGuard() {
+  const key = await initVaultKey();
+  if (!key) {
+    setCamStatus('🔒 Device not configured');
+    setResult('🔒 Device Locked',
+              'An administrator must sign in on this device once to unlock the encryption vault.',
+              'warn');
+    $('#result-actions').innerHTML = '';
+    $('#btn-start-cam').disabled = true;
+    return;
+  }
+  $('#btn-start-cam').disabled = false;
+  // … rest of original initGuard
+}
+
+/* =========================================================
+   ADMIN SCREEN
+   ========================================================= */
+async function renderAdmin() {
+  $('#f-from').value = attFilter.from;
+  $('#f-to').value = attFilter.to;
+  $('#f-q').value = attFilter.q;
+
+  // DB status check
+  try {
+    await supabase.from('approved_users').select('email').limit(1);
+    $('#db-status').textContent = 'connected ✓';
+  } catch (e) {
+    $('#db-status').textContent = 'error — check SQL setup';
+  }
+
+  await renderAttendanceTable();
+  await renderEmployeeTable();
+  await renderApprovedList();
+}
+
+function filteredLocal(rows) {
+  const q = attFilter.q.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter(a => (a.name + ' ' + a.emp_id + ' ' + (a.dept || '')).toLowerCase().includes(q));
+}
+
+async function renderAttendanceTable() {
+  const tbody = $('#att-table tbody');
+  try {
+    const rows = filteredLocal(await dbListAttendance({ from: attFilter.from, to: attFilter.to }));
+    tbody.innerHTML = rows.length ? rows.map((a, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${esc(a.date)}</td>
+        <td>${esc(a.time)}</td>
+        <td>${esc(a.emp_id)}</td>
+        <td>${esc(a.name)}</td>
+        <td>${esc(a.dept || '—')}</td>
+        <td>${a.method === 'face' ? 'Face Scan' : 'Manual'}</td>
+        <td><button class="btn danger sm" data-del-att="${esc(a.id)}">✕</button></td>
+      </tr>`).join('')
+      : '<tr><td colspan="8" class="muted center" style="padding:22px">No records for this filter.</td></tr>';
+    const uniq = new Set(rows.map(r => r.emp_id)).size;
+    $('#att-summary').textContent = rows.length ? `${rows.length} record(s) • ${uniq} unique worker(s)` : 'No records found.';
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="8" class="muted center" style="padding:22px;color:#fca5a5">DB error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function renderEmployeeTable() {
+  const tbody = $('#emp-table tbody');
+  try {
+    await refreshEmployeesCache();
+    const emps = cachedEmployees;
+    tbody.innerHTML = emps.length ? emps.map((e, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${e.thumb ? `<img class="thumb" src="${e.thumb}" alt="">` : '—'}</td>
+        <td>${esc(e.id)}</td>
+        <td>${esc(e.name)}</td>
+        <td>${esc(e.dept || '—')}</td>
+        <td><button class="btn danger sm" data-del-emp="${esc(e.id)}">Delete</button></td>
+      </tr>`).join('')
+      : '<tr><td colspan="6" class="muted center" style="padding:22px">No workers enrolled yet.</td></tr>';
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="muted center" style="padding:22px;color:#fca5a5">DB error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function renderApprovedList() {
+  const box = $('#approved-list');
+  try {
+    const rows = await dbListApproved();
+    $('#approved-count').textContent = rows.length;
+    box.innerHTML = rows.length ? rows.map(u => `
+      <div class="list-row">
+        <div class="avatar">${esc(initials(u.name || u.email))}</div>
+        <div class="grow">
+          <div class="strong" style="font-size:14px">${esc(u.name || u.email)}</div>
+          <div class="muted tiny">${esc(u.email)}</div>
+        </div>
+        <button class="btn danger sm" data-del-user="${esc(u.email)}">Remove</button>
+      </div>`).join('')
+      : '<p class="muted tiny center" style="padding:14px 0">No approved accounts yet.</p>';
+  } catch (e) {
+    box.innerHTML = `<p class="muted tiny center" style="color:#fca5a5">DB error: ${esc(e.message)}</p>`;
+  }
+}
+
+/* =========================================================
+   ENROLLMENT (Admin)
+   ========================================================= */
+async function openEnrollPanel() {
+  $('#enroll-panel').style.display = 'block';
+  enrollSamples = [];
+  $('#en-id').value = '';
+  $('#en-name').value = '';
+  $('#en-dept').value = '';
+  $('#admin-enroll-status').textContent = 'Starting camera…';
+  context = 'admin';
+  await startCamera(adminVideo);
+}
+
+function closeEnrollPanel() {
+  $('#enroll-panel').style.display = 'none';
+  enrollSamples = [];
+  stopCamera();
+}
+
+async function captureFaceAdmin() {
+  if (!modelsReady) { toast('Face engine not ready'); return; }
+  if (!scanning) { toast('Camera not running'); return; }
+  $('#btn-capture-admin').disabled = true;
+  try {
+    const res = await faceapi
+      .detectSingleFace(adminVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 288, scoreThreshold: 0.5 }))
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+    if (!res) { toast('No face detected'); return; }
+    if (enrollSamples.length >= 3) enrollSamples.shift();
+    enrollSamples.push(Array.from(res.descriptor));
+    $('#admin-enroll-status').textContent = `✔ ${enrollSamples.length} sample(s) captured`;
+    toast(`Sample ${enrollSamples.length} captured`);
+  } catch (e) {
+    toast('Capture failed: ' + e.message);
+  } finally {
+    $('#btn-capture-admin').disabled = false;
+  }
+}
+
+function captureThumbAdmin(size = 160) {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const vw = adminVideo.videoWidth, vh = adminVideo.videoHeight;
+    if (!vw || !vh) return '';
+    const s = Math.min(vw, vh);
+    ctx.drawImage(adminVideo, (vw - s) / 2, (vh - s) / 2, s, s, 0, 0, size, size);
+    return c.toDataURL('image/jpeg', 0.65);
+  } catch (e) { return ''; }
+}
+
+async function saveEmployee() {
+  const id = $('#en-id').value.trim();
+  const name = $('#en-name').value.trim();
+  const dept = $('#en-dept').value.trim();
+  if (!id) { toast('Enter employee ID'); return; }
+  if (!name) { toast('Enter name'); return; }
+  if (!enrollSamples.length) { toast('Capture at least one face sample'); return; }
+
+  try {
+    const encrypted = await encryptData({
+      descriptors: enrollSamples.slice(0, 3),
+      thumb: captureThumbAdmin(160)
+    });
+    await dbInsertEmployee({
+      emp_id: id, name, dept: dept || '', encrypted_blob: encrypted
+    });
+    toast('✔ ' + name + ' enrolled');
+    closeEnrollPanel();
+    await renderEmployeeTable();
+  } catch (e) {
+    toast('Save failed: ' + e.message);
+  }
+}
+
+/* =========================================================
+   EXCEL EXPORT
+   ========================================================= */
+async function downloadExcel() {
+  try {
+    const rows = filteredLocal(await dbListAttendance({ from: attFilter.from, to: attFilter.to }));
+    if (!rows.length) { toast('No records to export'); return; }
+    const header = ['Date', 'Time', 'Employee ID', 'Name', 'Department', 'Method'];
+    const data = rows.map(a => [a.date, a.time, a.emp_id, a.name, a.dept || '', a.method === 'face' ? 'Face Scan' : 'Manual']);
+    const fname = `attendance_${attFilter.from || 'all'}_to_${attFilter.to || 'all'}`;
+
+    if (window.XLSX) {
+      const ws = XLSX.utils.aoa_to_sheet([header].concat(data));
+      ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 12 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+      XLSX.writeFile(wb, fname + '.xlsx');
+    } else {
+      const csv = [header].concat(data)
+        .map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(','))
+        .join('\r\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fname + '.csv';
+      document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+    }
+    toast('Exported ' + rows.length + ' record(s)');
+  } catch (e) {
+    toast('Export failed: ' + e.message);
+  }
+}
+
+/* =========================================================
+   SETUP SQL (for the admin Setup tab)
+   ========================================================= */
+const SETUP_SQL = `-- Paste this into Supabase SQL Editor and click Run
+
+create table if not exists approved_users (
+  email text primary key,
+  name text,
+  status text check (status in ('approved','rejected')) default 'approved',
+  approved_at timestamptz default now()
+);
+
+create table if not exists employees (
+  id uuid primary key default gen_random_uuid(),
+  emp_id text unique not null,
+  name text not null,
+  dept text,
+  encrypted_blob jsonb not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists attendance (
+  id uuid primary key default gen_random_uuid(),
+  emp_id text not null,
+  name text not null,
+  dept text,
+  date date not null,
+  time time not null,
+  method text check (method in ('face','manual')),
+  created_at timestamptz default now()
+);
+
+alter table approved_users  enable row level security;
+alter table employees       enable row level security;
+alter table attendance      enable row level security;
+
+drop policy if exists "allow_all" on approved_users;
+create policy "allow_all" on approved_users for all using (true) with check (true);
+
+drop policy if exists "allow_all" on employees;
+create policy "allow_all" on employees for all using (true) with check (true);
+
+drop policy if exists "allow_all" on attendance;
+create policy "allow_all" on attendance for all using (true) with check (true);`;
+
+/* =========================================================
+   EVENT WIRING
+   ========================================================= */
+function bindEvents() {
+  /* Login tabs */
+  $$('[data-login-tab]').forEach(btn => btn.addEventListener('click', () => {
+    $$('[data-login-tab]').forEach(b => b.classList.toggle('active', b === btn));
+    $$('#scr-login .tabpane').forEach(p => p.classList.toggle('active', p.id === 'login-pane-' + btn.dataset.loginTab));
+  }));
+
+  /* Admin login */
+  $('#btn-admin-login').addEventListener('click', doAdminLogin);
+  $('#login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doAdminLogin(); });
+
+  /* Logout */
+  $('#btn-guard-logout').addEventListener('click', doLogout);
+  $('#btn-admin-logout').addEventListener('click', doLogout);
+
+  /* Guard camera */
+  $('#btn-start-cam').addEventListener('click', () => startCamera(guardVideo));
+  $('#btn-switch-cam').addEventListener('click', switchCamera);
+
+  /* Manual mark */
+  $('#btn-manual-mark').addEventListener('click', async () => {
+    const id = $('#manual-select').value;
+    if (!id) { toast('Select a worker'); return; }
+    const emp = cachedEmployees.find(e => String(e.id) === String(id));
+    if (!emp) { toast('Worker not found'); return; }
+    if (await markAttendance(emp, 'manual')) setResult('✅ ' + emp.name, 'Marked manually.', 'ok');
+  });
+
+  /* Admin tabs */
+  $$('[data-atab]').forEach(btn => btn.addEventListener('click', async () => {
+    $$('[data-atab]').forEach(b => b.classList.toggle('active', b === btn));
+    $$('#scr-admin .tabpane').forEach(p => p.classList.toggle('active', p.id === 'apane-' + btn.dataset.atab));
+    if (btn.dataset.atab === 'att') await renderAttendanceTable();
+    if (btn.dataset.atab === 'emp') await renderEmployeeTable();
+    if (btn.dataset.atab === 'users') await renderApprovedList();
+    if (btn.dataset.atab === 'set') {
+      $('#setup-sql').textContent = SETUP_SQL;
+    }
+  }));
+
+  /* Attendance filters */
+  $('#btn-apply-filter').addEventListener('click', async () => {
+    attFilter.from = $('#f-from').value;
+    attFilter.to = $('#f-to').value;
+    attFilter.q = $('#f-q').value;
+    await renderAttendanceTable();
+  });
+  $('#btn-show-all').addEventListener('click', async () => {
+    attFilter = { from: '', to: '', q: '' };
+    $('#f-from').value = '';
+    $('#f-to').value = '';
+    $('#f-q').value = '';
+    await renderAttendanceTable();
+  });
+  $('#f-q').addEventListener('input', async () => {
+    attFilter.q = $('#f-q').value;
+    await renderAttendanceTable();
+  });
+  $('#btn-download').addEventListener('click', downloadExcel);
+  $('#btn-refresh-att').addEventListener('click', async () => {
+    await renderAttendanceTable();
+    toast('Refreshed');
+  });
+
+  /* Enrollment (admin) */
+  $('#btn-enroll-toggle').addEventListener('click', openEnrollPanel);
+  $('#btn-capture-admin').addEventListener('click', captureFaceAdmin);
+  $('#btn-save-emp').addEventListener('click', saveEmployee);
+  $('#btn-cancel-enroll').addEventListener('click', closeEnrollPanel);
+
+  /* Approved Gmails */
+  $('#btn-approve').addEventListener('click', async () => {
+    const email = $('#approve-email').value.trim().toLowerCase();
+    const name = $('#approve-name').value.trim();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast('Enter a valid email'); return; }
+    try {
+      await dbApproveEmail(email, name);
+      $('#approve-email').value = '';
+      $('#approve-name').value = '';
+      toast('✓ Approved ' + email);
+      await renderApprovedList();
+    } catch (e) {
+      toast('Approve failed: ' + e.message);
+    }
+  });
+
+  /* Copy SQL */
+  $('#btn-copy-sql').addEventListener('click', () => {
+    navigator.clipboard.writeText(SETUP_SQL)
+      .then(() => toast('SQL copied'))
+      .catch(() => toast('Copy failed'));
+  });
+
+  /* Delegated delete actions */
+  document.addEventListener('click', async e => {
+    const delAtt = e.target.closest('[data-del-att]');
+    if (delAtt) {
+      if (!confirm('Delete this attendance record?')) return;
+      try {
+        await dbDeleteAttendance(delAtt.dataset.delAtt);
+        await renderAttendanceTable();
+        toast('Record deleted');
+      } catch (err) { toast('Delete failed: ' + err.message); }
+      return;
+    }
+    const delEmp = e.target.closest('[data-del-emp]');
+    if (delEmp) {
+      if (!confirm('Delete worker ' + delEmp.dataset.delEmp + '? Biometric data will also be removed.')) return;
+      try {
+        await dbDeleteEmployee(delEmp.dataset.delEmp);
+        await renderEmployeeTable();
+        toast('Worker deleted');
+      } catch (err) { toast('Delete failed: ' + err.message); }
+      return;
+    }
+    const delUser = e.target.closest('[data-del-user]');
+    if (delUser) {
+      if (!confirm('Revoke access for ' + delUser.dataset.delUser + '?')) return;
+      try {
+        await dbRemoveApproval(delUser.dataset.delUser);
+        await renderApprovedList();
+        toast('Access revoked');
+      } catch (err) { toast('Revoke failed: ' + err.message); }
+    }
+  });
+
+  /* Pause camera when tab hidden */
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && scanning) {
+      scanning = false;
+      if (loopTimer) clearTimeout(loopTimer);
+    } else if (!document.hidden && stream && currentVideo && currentUser) {
+      scanning = true;
+      loop();
+    }
+  });
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+function boot() {
+  bindEvents();
+  $('#setup-sql').textContent = SETUP_SQL;
+
+  // default admin filters
+  $('#f-from').value = todayStr();
+  $('#f-to').value = todayStr();
+
+  // init google button (retries until script loads)
+  initGoogle();
+
+  // verify supabase connection
+  supabase.from('approved_users').select('email').limit(1)
+    .then(({ error }) => {
+      if (error) {
+        console.warn('DB check error', error);
+        const el = $('#db-status');
+        if (el) el.textContent = 'error — run SQL in Setup tab';
+      } else {
+        const el = $('#db-status');
+        if (el) el.textContent = 'connected ✓';
+      }
+    });
+
+  // restore session
+  try {
+    const saved = sessionStorage.getItem('sa_user');
+    if (saved) {
+      currentUser = JSON.parse(saved);
+      if (currentUser && currentUser.role) { enterApp(); return; }
+    }
+  } catch (e) {}
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}
+
+// expose for debugging (optional)
+window.__saDebug = { APP_CONFIG, supabase };
+</script>
+</body>
+</html>
